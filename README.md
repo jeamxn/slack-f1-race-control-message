@@ -4,7 +4,7 @@ F1 라이브타이밍 SignalR 피드를 실시간으로 구독해서, Race Contr
 
 ## 동작 방식
 
-1. F1 공식 라이브타이밍 SignalR 엔드포인트(`https://livetiming.formula1.com/signalr`)에 연결
+1. F1 공식 라이브타이밍 SignalR Core 엔드포인트(`wss://livetiming.formula1.com/signalrcore`)에 연결
 2. `RaceControlMessages` 토픽을 구독
 3. 새 메시지가 들어오면 플래그/카테고리에 맞게 포맷팅해서 Slack 채널로 전송
 

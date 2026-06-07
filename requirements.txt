@@ -1,4 +1,4 @@
 requests>=2.31.0
-websocket-client>=1.7.0
+signalrcore>=0.9.5
 slack_sdk>=3.27.0
 python-dotenv>=1.0.0

@@ -13,11 +13,6 @@ class Config:
     SLACK_APP_TOKEN: str = os.getenv("SLACK_APP_TOKEN", "")
     SLACK_CHANNEL_ID: str = os.getenv("SLACK_CHANNEL_ID", "")
 
-    # F1 라이브타이밍 SignalR 엔드포인트
-    F1_SIGNALR_BASE: str = os.getenv(
-        "F1_SIGNALR_BASE", "https://livetiming.formula1.com/signalr"
-    )
-
     # 시작 시점의 스냅샷(이미 지나간 메시지)을 Slack으로 보낼지 여부.
     # 기본 False — 봇 켠 이후 새로 들어오는 메시지만 알린다.
     NOTIFY_SNAPSHOT: bool = os.getenv("NOTIFY_SNAPSHOT", "false").lower() == "true"

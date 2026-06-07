@@ -6,6 +6,8 @@ RaceControlMessages 페이로드 형태:
 둘 다 대응한다.
 """
 import logging
+import signal
+import threading
 
 from .config import Config
 from .f1_client import F1LiveClient
@@ -40,7 +42,7 @@ class App:
     def __init__(self) -> None:
         Config.validate()
         self._slack = SlackNotifier(Config.SLACK_BOT_TOKEN, Config.SLACK_CHANNEL_ID)
-        self._client = F1LiveClient(Config.F1_SIGNALR_BASE, self._on_topic)
+        self._client = F1LiveClient(self._on_topic)
         # 이미 처리한 메시지(중복 방지). 스냅샷과 변경분이 겹칠 수 있다.
         self._seen: set[str] = set()
         self._snapshot_done = False
@@ -84,7 +86,23 @@ class App:
         bot_name = self._slack.check_auth()
         logger.info("Slack 인증 성공 (bot=%s). 채널=%s", bot_name, Config.SLACK_CHANNEL_ID)
         logger.info("F1 라이브타이밍 연결 시작...")
-        self._client.run_forever()
+
+        stop = threading.Event()
+
+        def _shutdown(signum, _frame):
+            logger.info("종료 신호(%s) 수신. 정리 중...", signum)
+            stop.set()
+
+        signal.signal(signal.SIGINT, _shutdown)
+        signal.signal(signal.SIGTERM, _shutdown)
+
+        # 클라이언트는 백그라운드 스레드에서 동작(논블로킹).
+        # 자동 재연결이 켜져 있으므로 메인 스레드는 종료 신호만 기다린다.
+        self._client.start()
+        try:
+            stop.wait()
+        finally:
+            self._client.stop()
 
 
 def main() -> None:
