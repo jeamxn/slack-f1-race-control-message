@@ -76,8 +76,9 @@ class App:
                 continue
 
             text = format_message(msg)
-            ok = self._slack.send(text)
-            logger.info("%s %s", ":white_check_mark:" if ok else ":x:", text)
+            # Race Control은 중요 알림이므로 @here 멘션을 붙인다.
+            ok = self._slack.send(f"<!here> {text}")
+            logger.info("%s %s", "OK" if ok else "FAIL", text)
 
         if is_snapshot:
             self._snapshot_done = True
