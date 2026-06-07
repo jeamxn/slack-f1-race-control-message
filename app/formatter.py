@@ -3,23 +3,23 @@ from typing import Any
 
 # 플래그별 이모지 매핑
 FLAG_EMOJI = {
-    "GREEN": ":green_circle:",
-    "YELLOW": ":large_yellow_circle:",
-    "DOUBLE YELLOW": ":large_yellow_circle::large_yellow_circle:",
-    "RED": ":red_circle:",
-    "BLUE": ":large_blue_circle:",
-    "CHEQUERED": ":checkered_flag:",
-    "CLEAR": ":white_circle:",
-    "BLACK AND WHITE": ":chequered_flag:",
+    "GREEN": "🟢",
+    "YELLOW": "🟡",
+    "DOUBLE YELLOW": "🟡🟡",
+    "RED": "🔴",
+    "BLUE": "🔵",
+    "CHEQUERED": "🏁",
+    "CLEAR": "⚪",
+    "BLACK AND WHITE": "🏴",
 }
 
 # 카테고리별 이모지
 CATEGORY_EMOJI = {
-    "SafetyCar": ":rotating_light:",
-    "Flag": ":triangular_flag_on_post:",
-    "Drs": ":dash:",
-    "CarEvent": ":racing_car:",
-    "Other": ":loudspeaker:",
+    "SafetyCar": "🚨",
+    "Flag": "🚩",
+    "Drs": "💨",
+    "CarEvent": "🏎️",
+    "Other": "📢",
 }
 
 
