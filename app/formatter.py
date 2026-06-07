@@ -66,7 +66,10 @@ def format_message(msg: dict[str, Any]) -> str:
 def format_position_change(change) -> str:
     """순위 변동(PositionChange)을 Slack 텍스트 한 줄로.
 
-    예: 🔼 VER P5 → P3   /   🔽 LEC P3 → P5
+    예: 🔼 VER #3 (Red Bull Racing) P5 → P3
     """
     arrow = "🔼" if change.gained else "🔽"
-    return f"{arrow} {change.tla} P{change.old_pos} → P{change.new_pos}"
+    driver = f"{change.tla} #{change.number}"
+    if change.team:
+        driver += f" ({change.team})"
+    return f"{arrow} {driver} P{change.old_pos} → P{change.new_pos}"

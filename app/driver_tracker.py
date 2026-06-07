@@ -14,6 +14,7 @@ from typing import NamedTuple
 class PositionChange(NamedTuple):
     tla: str          # 드라이버 약어 (예: VER)
     number: str       # 레이싱 넘버 (예: 3)
+    team: str         # 팀 이름 (예: Red Bull Racing)
     old_pos: int      # 이전 순위
     new_pos: int      # 새 순위
 
@@ -28,11 +29,12 @@ class DriverTracker:
 
     def __init__(self) -> None:
         self._tla: dict[str, str] = {}        # 번호 -> 약어
+        self._team: dict[str, str] = {}       # 번호 -> 팀 이름
         self._positions: dict[str, int] = {}  # 번호 -> 현재 순위
 
     # ---- DriverList ----
     def update_driver_list(self, content: object) -> None:
-        """DriverList 스냅샷/변경분으로 번호->약어 매핑을 갱신한다."""
+        """DriverList 스냅샷/변경분으로 번호->약어/팀 매핑을 갱신한다."""
         if not isinstance(content, dict):
             return
         for number, info in content.items():
@@ -40,6 +42,9 @@ class DriverTracker:
                 tla = info.get("Tla")
                 if tla:
                     self._tla[str(number)] = tla
+                team = info.get("TeamName")
+                if team:
+                    self._team[str(number)] = team
 
     def _name(self, number: str) -> str:
         return self._tla.get(str(number), f"#{number}")
@@ -79,6 +84,7 @@ class DriverTracker:
                 PositionChange(
                     tla=self._name(number),
                     number=number,
+                    team=self._team.get(number, ""),
                     old_pos=old_pos,
                     new_pos=new_pos,
                 )
