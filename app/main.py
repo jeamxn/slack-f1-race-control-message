@@ -12,7 +12,7 @@ import threading
 from .config import Config
 from .driver_tracker import DriverTracker
 from .f1_client import F1LiveClient
-from .formatter import format_message, format_position_change
+from .formatter import format_highlight, format_message, format_position_change
 from .slack_notifier import SlackNotifier
 
 logging.basicConfig(
@@ -98,12 +98,19 @@ class App:
     def _handle_timing(self, content: object) -> None:
         is_snapshot = not self._timing_snapshot_done
         changes = self._tracker.apply_timing(content, is_snapshot=is_snapshot)
+        highlights = self._tracker.check_highlights(content, is_snapshot=is_snapshot)
         if is_snapshot:
             self._timing_snapshot_done = True
 
         # 순위 변동은 @here 없이 전송 (너무 잦아서 멘션 폭탄 방지).
         for change in changes:
             text = format_position_change(change)
+            ok = self._slack.send(text)
+            logger.info("%s %s", "OK" if ok else "FAIL", text)
+
+        # 패스티스트 랩 / 퍼플 섹터 하이라이트.
+        for h in highlights:
+            text = format_highlight(h)
             ok = self._slack.send(text)
             logger.info("%s %s", "OK" if ok else "FAIL", text)
 

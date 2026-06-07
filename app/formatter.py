@@ -73,3 +73,19 @@ def format_position_change(change) -> str:
     if change.team:
         driver += f" ({change.team})"
     return f"{arrow} {driver} P{change.old_pos} → P{change.new_pos}"
+
+
+def format_highlight(h) -> str:
+    """LapHighlight를 Slack 텍스트 한 줄로.
+
+    fastest_lap:   ⏱️ FASTEST LAP - VER #3 (Red Bull Racing) 1:12.345
+    purple_sector: 🟣 SECTOR 2 - VER #3 (Red Bull Racing) 35.918
+    """
+    driver = f"{h.tla} #{h.number}"
+    if h.team:
+        driver += f" ({h.team})"
+    if h.kind == "fastest_lap":
+        return f"⏱️ FASTEST LAP - {driver} {h.value}"
+    if h.kind == "purple_sector":
+        return f"🟣 SECTOR {h.sector} - {driver} {h.value}"
+    return f"{driver} {h.value}"
