@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+venv/
+.venv/
+env/
+
+# Env / secrets
+.env
+*.env
+!.env.example
+
+# FastF1 / livetiming cache
+cache/
+*.ttl
+livetiming_*.txt
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
