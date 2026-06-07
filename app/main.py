@@ -10,8 +10,9 @@ import signal
 import threading
 
 from .config import Config
+from .driver_tracker import DriverTracker
 from .f1_client import F1LiveClient
-from .formatter import format_message
+from .formatter import format_message, format_position_change
 from .slack_notifier import SlackNotifier
 
 logging.basicConfig(
@@ -43,9 +44,11 @@ class App:
         Config.validate()
         self._slack = SlackNotifier(Config.SLACK_BOT_TOKEN, Config.SLACK_CHANNEL_ID)
         self._client = F1LiveClient(self._on_topic)
+        self._tracker = DriverTracker()
         # 이미 처리한 메시지(중복 방지). 스냅샷과 변경분이 겹칠 수 있다.
         self._seen: set[str] = set()
-        self._snapshot_done = False
+        self._rcm_snapshot_done = False
+        self._timing_snapshot_done = False
 
     def _dedup_key(self, key: str, msg: dict) -> str:
         # Utc + Message 조합이 가장 신뢰성 있는 고유키.
@@ -60,10 +63,20 @@ class App:
             )
             return
 
-        if topic != "RaceControlMessages":
+        if topic == "DriverList":
+            self._tracker.update_driver_list(content)
             return
 
-        is_snapshot = not self._snapshot_done
+        if topic == "TimingData":
+            self._handle_timing(content)
+            return
+
+        if topic == "RaceControlMessages":
+            self._handle_race_control(content)
+            return
+
+    def _handle_race_control(self, content: object) -> None:
+        is_snapshot = not self._rcm_snapshot_done
         for key, msg in _iter_messages(content):
             dk = self._dedup_key(key, msg)
             if dk in self._seen:
@@ -76,12 +89,23 @@ class App:
                 continue
 
             text = format_message(msg)
-            # Race Control은 중요 알림이므로 @here 멘션을 붙인다.
-            ok = self._slack.send(f"<!here> {text}")
+            ok = self._slack.send(text)
             logger.info("%s %s", "OK" if ok else "FAIL", text)
 
         if is_snapshot:
-            self._snapshot_done = True
+            self._rcm_snapshot_done = True
+
+    def _handle_timing(self, content: object) -> None:
+        is_snapshot = not self._timing_snapshot_done
+        changes = self._tracker.apply_timing(content, is_snapshot=is_snapshot)
+        if is_snapshot:
+            self._timing_snapshot_done = True
+
+        # 순위 변동은 @here 없이 전송 (너무 잦아서 멘션 폭탄 방지).
+        for change in changes:
+            text = format_position_change(change)
+            ok = self._slack.send(text)
+            logger.info("%s %s", "OK" if ok else "FAIL", text)
 
     def run(self) -> None:
         bot_name = self._slack.check_auth()

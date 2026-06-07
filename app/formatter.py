@@ -61,3 +61,12 @@ def format_message(msg: dict[str, Any]) -> str:
 
     body = " ".join(p for p in parts if p)
     return f"{prefix} {body}".strip()
+
+
+def format_position_change(change) -> str:
+    """순위 변동(PositionChange)을 Slack 텍스트 한 줄로.
+
+    예: 🔼 VER P5 → P3   /   🔽 LEC P3 → P5
+    """
+    arrow = "🔼" if change.gained else "🔽"
+    return f"{arrow} {change.tla} P{change.old_pos} → P{change.new_pos}"
