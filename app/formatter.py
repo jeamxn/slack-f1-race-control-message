@@ -89,3 +89,35 @@ def format_highlight(h) -> str:
     if h.kind == "purple_sector":
         return f"🟣 SECTOR {h.sector} - {driver} {h.value}"
     return f"{driver} {h.value}"
+
+
+# 타이어 컴파운드별 이모지
+TYRE_EMOJI = {
+    "SOFT": "🔴",
+    "MEDIUM": "🟡",
+    "HARD": "⚪",
+    "INTERMEDIATE": "🟢",
+    "WET": "🔵",
+}
+
+
+def format_pit_event(e) -> str:
+    """PitEvent를 Slack 텍스트 한 줄로.
+
+    pit_in:  🅿️ PIT IN - VER #3 (Red Bull Racing) P5
+    pit_out: 🅿️ PIT OUT - VER #3 (Red Bull Racing) → 🔴 SOFT (new)
+    """
+    driver = f"{e.tla} #{e.number}"
+    if e.team:
+        driver += f" ({e.team})"
+
+    if e.kind == "pit_in":
+        pos = f" P{e.position}" if e.position else ""
+        return f"🅿️ PIT IN - {driver}{pos}"
+
+    # pit_out
+    if e.compound:
+        tyre = f"{TYRE_EMOJI.get(e.compound.upper(), '')} {e.compound.upper()}".strip()
+        new = " (new)" if e.is_new else " (used)"
+        return f"🅿️ PIT OUT - {driver} → {tyre}{new}"
+    return f"🅿️ PIT OUT - {driver}"

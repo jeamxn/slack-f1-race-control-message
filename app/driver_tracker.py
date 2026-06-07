@@ -33,6 +33,16 @@ class LapHighlight(NamedTuple):
     sector: int = 0   # purple_sector일 때 1/2/3 (fastest_lap은 0)
 
 
+class PitEvent(NamedTuple):
+    kind: str         # "pit_in" | "pit_out"
+    tla: str
+    number: str
+    team: str
+    position: int     # 현재 순위 (모르면 0)
+    compound: str = ""  # pit_out일 때 새 타이어 컴파운드 (SOFT/MEDIUM/HARD 등)
+    is_new: bool = False  # 새 타이어 여부
+
+
 class DriverTracker:
     """드라이버 약어 매핑과 마지막 순위를 들고 있다가 변동을 계산한다."""
 
@@ -43,6 +53,9 @@ class DriverTracker:
         # 하이라이트 중복 발사 방지용 마지막 발사 키
         self._last_fastest: str = ""          # "번호|랩타임"
         self._last_purple: dict[str, str] = {}  # "번호|섹터" -> 섹터타임
+        # 피트/타이어 상태
+        self._in_pit: dict[str, bool] = {}    # 번호 -> 현재 InPit 상태
+        self._tyre: dict[str, tuple[str, bool]] = {}  # 번호 -> (컴파운드, 새타이어여부)
 
     # ---- DriverList ----
     def update_driver_list(self, content: object) -> None:
@@ -181,3 +194,81 @@ class DriverTracker:
                     yield int(k), sec
                 except (ValueError, TypeError):
                     continue
+
+    # ---- 타이어 (TimingAppData) ----
+    def update_tyres(self, content: object) -> None:
+        """TimingAppData의 Stints에서 각 드라이버의 현재(마지막) 컴파운드를 저장한다.
+
+        Stints는 스냅샷=list, feed=dict("0","1",...) 둘 다 온다. 부분 업데이트는
+        해당 스틴트만 오므로, 컴파운드/New가 들어온 경우에만 갱신한다.
+        """
+        if not isinstance(content, dict):
+            return
+        lines = content.get("Lines")
+        if not isinstance(lines, dict):
+            return
+        for number, line in lines.items():
+            if not isinstance(line, dict):
+                continue
+            stints = line.get("Stints")
+            number = str(number)
+            for _idx, stint in self._iter_sectors(stints):
+                if not isinstance(stint, dict):
+                    continue
+                compound = stint.get("Compound")
+                if compound:
+                    is_new = str(stint.get("New", "")).lower() == "true"
+                    self._tyre[number] = (compound, is_new)
+
+    # ---- 피트 인/아웃 (TimingData) ----
+    def check_pits(self, content: object, *, is_snapshot: bool) -> list[PitEvent]:
+        """TimingData의 InPit/PitOut 전환을 감지한다.
+
+        InPit이 False->True 가 되면 pit_in, True->False 가 되면 pit_out.
+        스냅샷은 기준 상태만 세우고 보고하지 않는다.
+        """
+        events: list[PitEvent] = []
+        if not isinstance(content, dict):
+            return events
+        lines = content.get("Lines")
+        if not isinstance(lines, dict):
+            return events
+
+        for number, line in lines.items():
+            if not isinstance(line, dict):
+                continue
+            if "InPit" not in line:
+                continue  # 피트 상태 변화 없는 업데이트
+            number = str(number)
+            new_in_pit = bool(line.get("InPit"))
+            old_in_pit = self._in_pit.get(number)
+            self._in_pit[number] = new_in_pit
+
+            if is_snapshot or old_in_pit is None or old_in_pit == new_in_pit:
+                continue
+
+            pos = self._positions.get(number, 0)
+            if new_in_pit:
+                events.append(
+                    PitEvent(
+                        kind="pit_in",
+                        tla=self._name(number),
+                        number=number,
+                        team=self._team.get(number, ""),
+                        position=pos,
+                    )
+                )
+            else:
+                compound, is_new = self._tyre.get(number, ("", False))
+                events.append(
+                    PitEvent(
+                        kind="pit_out",
+                        tla=self._name(number),
+                        number=number,
+                        team=self._team.get(number, ""),
+                        position=pos,
+                        compound=compound,
+                        is_new=is_new,
+                    )
+                )
+        return events

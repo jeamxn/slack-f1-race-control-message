@@ -12,7 +12,12 @@ import threading
 from .config import Config
 from .driver_tracker import DriverTracker
 from .f1_client import F1LiveClient
-from .formatter import format_highlight, format_message, format_position_change
+from .formatter import (
+    format_highlight,
+    format_message,
+    format_pit_event,
+    format_position_change,
+)
 from .slack_notifier import SlackNotifier
 
 logging.basicConfig(
@@ -67,6 +72,10 @@ class App:
             self._tracker.update_driver_list(content)
             return
 
+        if topic == "TimingAppData":
+            self._tracker.update_tyres(content)
+            return
+
         if topic == "TimingData":
             self._handle_timing(content)
             return
@@ -99,6 +108,7 @@ class App:
         is_snapshot = not self._timing_snapshot_done
         changes = self._tracker.apply_timing(content, is_snapshot=is_snapshot)
         highlights = self._tracker.check_highlights(content, is_snapshot=is_snapshot)
+        pit_events = self._tracker.check_pits(content, is_snapshot=is_snapshot)
         if is_snapshot:
             self._timing_snapshot_done = True
 
@@ -111,6 +121,12 @@ class App:
         # 패스티스트 랩 / 퍼플 섹터 하이라이트.
         for h in highlights:
             text = format_highlight(h)
+            ok = self._slack.send(text)
+            logger.info("%s %s", "OK" if ok else "FAIL", text)
+
+        # 피트 인/아웃.
+        for e in pit_events:
+            text = format_pit_event(e)
             ok = self._slack.send(text)
             logger.info("%s %s", "OK" if ok else "FAIL", text)
 

@@ -25,9 +25,16 @@ logger = logging.getLogger(__name__)
 NEGOTIATE_URL = "https://livetiming.formula1.com/signalrcore/negotiate"
 CONNECTION_URL = "wss://livetiming.formula1.com/signalrcore"
 
-# 구독할 토픽. RaceControlMessages + 순위 추적용 TimingData/DriverList,
+# 구독할 토픽. RaceControlMessages + 순위/피트/타이어 추적용,
 # 나머지는 컨텍스트(어느 세션인지 등).
-TOPICS = ["RaceControlMessages", "TimingData", "DriverList", "SessionInfo", "TrackStatus"]
+TOPICS = [
+    "RaceControlMessages",
+    "TimingData",
+    "TimingAppData",
+    "DriverList",
+    "SessionInfo",
+    "TrackStatus",
+]
 
 
 class F1LiveClient:
