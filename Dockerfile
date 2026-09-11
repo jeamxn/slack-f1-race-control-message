@@ -17,4 +17,9 @@ COPY app/ ./app/
 RUN useradd -m -u 1000 appuser
 USER appuser
 
+# 감시 루프가 돌면 HEALTH_FILE 을 계속 갱신한다.
+# 2분 넘게 안 갱신되면 죽은 것으로 본다.
+HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
+    CMD python -c "import os,sys,time; p=os.getenv('HEALTH_FILE','/tmp/f1-bot-alive'); sys.exit(0 if os.path.exists(p) and time.time()-os.path.getmtime(p) < 120 else 1)"
+
 CMD ["python", "-m", "app.main"]
